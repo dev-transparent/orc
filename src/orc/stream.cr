@@ -8,6 +8,7 @@ module Orc
     getter buffer : IO::Memory
 
     delegate codec, io, to: reader
+    delegate rewind, to: buffer
 
     def initialize(@reader : Reader, @column : UInt32, @length : UInt64, @kind : Orc::Proto::Stream::Kind)
       @buffer = IO::Memory.new(length)
