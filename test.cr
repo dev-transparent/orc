@@ -32,22 +32,23 @@ File.open("./orc-file-11-format.orc") do |io|
 
       column = case field.kind
       when Orc::Proto::Type::Kind::BOOLEAN
-        Orc::Columns::BooleanColumn.new(encoding, data_stream, present_stream)
+        Orc::Columns::BooleanColumn.new(stripe, field)
       when Orc::Proto::Type::Kind::INT
-        Orc::Columns::IntegerColumn.new(encoding, data_stream, present_stream)
+        Orc::Columns::IntegerColumn.new(stripe, field)
       when Orc::Proto::Type::Kind::BYTE
-        Orc::Columns::ByteColumn.new(encoding, data_stream, present_stream)
+        Orc::Columns::ByteColumn.new(stripe, field)
       when Orc::Proto::Type::Kind::STRING
         length_stream = streams_by_kind[Orc::Proto::Stream::Kind::LENGTH].find! { |stream| stream.column == field.id }
 
-        Orc::Columns::StringColumn.new(encoding, data_stream, length_stream, present_stream)
+        Orc::Columns::StringColumn.new(stripe, field)
       else
         next
       end
 
-      results = column.first(row_count)
+      results = column.first(row_count).to_a
 
       puts "fetched #{field.kind}: #{results.size} of #{row_count}"
+      puts "examples: #{results.first(3)}"
     end
 
   end
