@@ -1,0 +1,14 @@
+name: orc
+version: 0.1.0
+
+authors:
+  - Gary Mardell <info@garymardell.co.uk>
+
+crystal: '>= 1.11.2'
+
+license: MIT
+
+dependencies:
+  protobuf:
+    github: jeromegn/protobuf.cr
+    version: ~> 2.3.0
