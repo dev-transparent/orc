@@ -1,31 +1,36 @@
 module Orc
   class Writer
     private getter io : IO
-    private getter footer_buffer : IO::Memory
-    private getter postscript_buffer : IO::Memory
+    private getter footer_buffer : IO::Memory = IO::Memory.new
+    private getter postscript_buffer : IO::Memory = IO::Memory.new
 
-    def initialize(@schema : Schema, @io : IO)
+    private getter stripes : Array(Stripe) = [] of Stripe
+
+    def initialize(@io : IO)
       write_header
 
-      @footer_buffer = IO::Memory.new
-      @postscript_buffer = IO::Memory.new
+      yield self
+
+      write_footer
     end
 
-    def write_header
+    def write_stripe(stripe : Stripe)
+      stripe.to_io(io)
+      stripes << stripe
+    end
+
+    private def write_header
       io.write("ORC".to_slice)
     end
 
-    def write_batch(batch : Batch)
-    end
-
-    def write_footer
+    private def write_footer
       footer = Orc::Proto::Footer.new(
         header_length: 3,
-        # content_length: 0, # TODO: Content length in bytes
-        # stripes: StripeInformation,
-        # types: Type,
+        stripes: stripe_information,
+        content_length: stripe_information.sum { |info| info.index_length.not_nil! + info.data_length.not_nil! + info.footer_length.not_nil! },
+        types: types,
         # metadata: UserMetadataItem,
-        # number_of_rows: :uint64,
+        number_of_rows: stripes.sum(&.number_of_rows),
         # statistics: ColumnStatistics,
         # row_index_stride: :uint32,
         # writer: 6,
@@ -34,6 +39,35 @@ module Orc
 
       footer.to_protobuf(IO::MultiWriter.new(footer_buffer, io))
       write_postscript
+    end
+
+    private def types : Array(Orc::Proto::Type)
+      [
+        Orc::Proto::Type.new(
+          kind: Orc::Proto::Type::Kind::STRUCT,
+          subtypes: [] of UInt32,
+          field_names: [] of String
+          #     optional :maximum_length, :uint32, 4
+          #     optional :precision, :uint32, 5
+          #     optional :scale, :uint32, 6
+          #     repeated :attributes, StringPair, 7
+        )
+      ]
+    end
+
+    private def stripe_information : Array(Orc::Proto::StripeInformation)
+      offset = 3u64
+      stripes.map do |stripe|
+        Orc::Proto::StripeInformation.new(
+          offset: offset,
+          index_length: stripe.streams.select(&.index?).sum(&.length),
+          data_length: stripe.streams.select(&.data?).sum(&.length),
+          footer_length: stripe.footer.to_protobuf.size.to_u64, # TODO: Do something about the re-encoding of the footer
+          number_of_rows: stripe.number_of_rows
+        ).tap do |info|
+          offset += info.index_length.not_nil! + info.data_length.not_nil! + info.footer_length.not_nil!
+        end
+      end
     end
 
     private def write_postscript
@@ -49,6 +83,7 @@ module Orc
       )
 
       postscript.to_protobuf(IO::MultiWriter.new(postscript_buffer, io))
+
       io.write_byte(postscript_buffer.size.to_u8)
     end
   end

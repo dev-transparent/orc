@@ -1,12 +1,11 @@
 module Orc
   class Stripe
-    getter io : IO
     getter streams : Array(Stream)
-    getter info : Proto::StripeInformation
     getter footer : Orc::Proto::StripeFooter
+    getter number_of_rows : UInt64
     getter column_encodings : Array(Orc::Proto::ColumnEncoding)
 
-    def initialize(@io : IO, @streams : Array(Stream), @info : Proto::StripeInformation, @footer : Orc::Proto::StripeFooter)
+    def initialize(@streams : Array(Stream), @footer : Orc::Proto::StripeFooter, @number_of_rows : UInt64)
       @column_encodings = @footer.columns.not_nil!
     end
 
@@ -27,7 +26,11 @@ module Orc
         )
       end
 
-      new(reader.io, streams, info, footer)
+      new(streams, footer, info.number_of_rows.not_nil!)
+    end
+
+    def to_io(io)
+      # TODO: Implement writing the stripe content and footer
     end
   end
 end
