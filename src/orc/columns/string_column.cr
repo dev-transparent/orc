@@ -1,22 +1,17 @@
 module Orc
   module Columns
     class StringColumn < Column(String)
-      # @data_io : IO
-      # @data : RunLengthIntegerReader?
-      #
-      @reader : StringReader
+      @reader : StringReader?
 
-      def initialize(@stripe : Stripe, @field : Field)
-        super
-
-        case encoding.kind
+      def reader
+        @reader ||= case encoding.kind
         when Orc::Proto::ColumnEncoding::Kind::DIRECT
-          @reader = StringDirectReader.new(
+          StringDirectReader.new(
             RunLengthIntegerReader.new(length_stream.buffer, false),
             data_stream.buffer
           )
         when Orc::Proto::ColumnEncoding::Kind::DICTIONARY
-          @reader = StringDictionaryReader.new(
+          StringDictionaryReader.new(
             RunLengthIntegerReader.new(length_stream.buffer, false),
             RunLengthIntegerReader.new(data_stream.buffer, false),
             dictionary_stream.buffer
@@ -37,7 +32,7 @@ module Orc
       def next
         return unless present?
 
-        @reader.next
+        reader.next
       end
     end
   end

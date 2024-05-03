@@ -1,21 +1,21 @@
 module Orc
   module Columns
     class IntegerColumn < Column(Int64)
-      def initialize(@stripe : Stripe, @field : Field)
-        super
+      @reader : RunLengthIntegerReader | RunLengthIntegerReaderV2 | Nil
 
-        case encoding.kind
+      def reader
+        @reader ||= case encoding.kind
         when Orc::Proto::ColumnEncoding::Kind::DIRECT
-          @data = RunLengthIntegerReader.new(data_stream.buffer, true)
+          RunLengthIntegerReader.new(data_stream.buffer, true)
         when Orc::Proto::ColumnEncoding::Kind::DIRECTV2
-          @data = RunLengthIntegerReaderV2.new(data_stream.buffer, true)
+          RunLengthIntegerReaderV2.new(data_stream.buffer, true)
         else
           raise "Encoding type #{encoding.kind} not supported"
         end
       end
 
       def next
-        @data.next if present?
+        reader.next if present?
       end
     end
   end
