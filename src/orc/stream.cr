@@ -1,19 +1,21 @@
 module Orc
   class Stream
-    property reader : Reader
-    property column : UInt32
-    property length : UInt64
-    property kind : Orc::Proto::Stream::Kind
-
     getter buffer : IO::Memory
+    getter codec : Codec
+    getter column : UInt32
+    getter kind : Orc::Proto::Stream::Kind
 
-    delegate codec, io, to: reader
     delegate rewind, to: buffer
 
-    def initialize(@reader : Reader, @column : UInt32, @length : UInt64, @kind : Orc::Proto::Stream::Kind)
-      @buffer = IO::Memory.new(length)
-      IO.copy(io, buffer, length)
-      @buffer.rewind
+    def initialize(@buffer : IO::Memory, @codec : Codec, @column : UInt32, @kind : Orc::Proto::Stream::Kind)
+    end
+
+    def self.from_reader(reader : Reader, column : UInt32, kind : Orc::Proto::Stream::Kind, length : UInt64)
+      buffer = IO::Memory.new(length)
+      IO.copy(reader.io, buffer, length)
+      buffer.rewind
+
+      new(buffer, reader.codec, column, kind)
     end
   end
 end

@@ -16,7 +16,7 @@ module Orc
       if current_index < stripes.size
         stripe_information = stripes[@current_index]
 
-        Stripe.new(reader, stripe_information).tap do
+        Stripe.from_reader(reader, stripe_information).tap do
           @current_index += 1
         end
       else
