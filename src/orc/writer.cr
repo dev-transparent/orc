@@ -45,12 +45,17 @@ module Orc
       [
         Orc::Proto::Type.new(
           kind: Orc::Proto::Type::Kind::STRUCT,
-          subtypes: [] of UInt32,
-          field_names: [] of String
+          subtypes: [1u32],
+          field_names: ["Boolean"]
           #     optional :maximum_length, :uint32, 4
           #     optional :precision, :uint32, 5
           #     optional :scale, :uint32, 6
           #     repeated :attributes, StringPair, 7
+        ),
+        Orc::Proto::Type.new(
+          kind: Orc::Proto::Type::Kind::BOOLEAN,
+          subtypes: [] of UInt32,
+          field_names: [] of String
         )
       ]
     end
@@ -60,8 +65,8 @@ module Orc
       stripes.map do |stripe|
         Orc::Proto::StripeInformation.new(
           offset: offset,
-          index_length: stripe.streams.select(&.index?).sum(&.length),
-          data_length: stripe.streams.select(&.data?).sum(&.length),
+          index_length: stripe.streams.select(&.index?).sum { |stream| stream.buffer.bytesize.to_u64 },
+          data_length: stripe.streams.select(&.data?).sum { |stream| stream.buffer.bytesize.to_u64 },
           footer_length: stripe.footer.to_protobuf.size.to_u64, # TODO: Do something about the re-encoding of the footer
           number_of_rows: stripe.number_of_rows
         ).tap do |info|

@@ -43,21 +43,13 @@ module Orc
     end
 
     def read_direct(first_byte : UInt8)
-      puts "read direct"
-      puts first_byte.to_s(2, precision: 8)
-      puts first_byte == 0b01111111_u8
       encoded_width = (first_byte.to_u64 >> 1) & 0x1f
       width = decode_width(encoded_width)
 
       length = ((first_byte.to_u64 & 0x01) << 8)
-      puts length
-      puts length.to_s(2, precision: 8)
       second_byte = @io.read_byte.not_nil!
-      puts second_byte.to_s(2, precision: 8)
       length |= second_byte
       length += 1
-
-      puts "length #{length} and #{width} - #{first_byte.to_i16}"
 
       read_ints(@literals_size, length, width)
 
@@ -88,30 +80,22 @@ module Orc
       end_offset = offset + length
       end_unroll = end_offset - remainder
 
-      puts "end unroll #{remainder} #{length} #{end_unroll}"
-
       j = 0
       i = offset
-      # while i < end_unroll
-      #   puts "index #{i} and #{j} to read #{num_bytes} and #{num_bytes * num_hops}"
-      #   # puts "read long be", i, num_hops, num_bytes
-      #   # readLongBE(r, buffer, i, numHops, numBytes)
-      #   read_long_be(i, num_hops, num_bytes)
-      #   i += num_hops * num_bytes
-      #   j += 1
-      # end
-      3.times do
+      while i < end_unroll
         read_long_be(i, num_hops, num_bytes)
+        i += num_hops * num_bytes
+        j += 1
       end
 
-      # if remainder > 0
-      #   read_remaining_longs(i, remainder, num_bytes)
-      # end
+      if remainder > 0
+        read_remaining_longs(i, remainder, num_bytes)
+      end
     end
 
     def read_remaining_longs(offset, remainder, num_bytes)
       to_read = remainder * num_bytes
-      puts "remaining to read #{to_read}"
+
       read_buffer = Bytes.new(64) # TODO: Constant number
       to_read.times do |i|
         read_buffer[i] = @io.read_byte.not_nil!
@@ -139,7 +123,6 @@ module Orc
     def read_long_be(start, num_hops, num_bytes)
       to_read = num_hops * num_bytes
 
-      puts "to read", to_read
       read_buffer = Bytes.new(64) # TODO: Constant number
       # @io.read_fully(read_buffer)
       to_read.times do |i|

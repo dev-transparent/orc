@@ -46,18 +46,35 @@ require "./src/orc"
 
 #   end
 # end
+#
 
-streams = [] of Orc::Stream
+buffer = IO::Memory.new
+writer = Orc::RunLengthBooleanWriter.new(buffer)
+
+100.times do |i|
+  writer.write(i % 2 == 0)
+end
+
+writer.flush
+
+streams = [
+  Orc::Stream.new(buffer, Orc::Codecs::None.new, 1u32, Orc::Proto::Stream::Kind::DATA, buffer.size.to_u64)
+]
+
+footer = Orc::Proto::StripeFooter.new(
+  streams: streams.map { |stream|
+    Orc::Proto::Stream.new(kind: stream.kind, column: stream.column, length: stream.length)
+  },
+  columns: [
+    Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
+    Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
+  ]
+)
 
 stripe = Orc::Stripe.new(
   streams: streams,
-  footer: Orc::Proto::StripeFooter.new(
-    streams: streams.map { |stream|
-      Orc::Proto::Stream.new(kind: stream.kind, column: stream.column, length: stream.length)
-    },
-    columns: [] of Orc::Proto::ColumnEncoding
-  ),
-  number_of_rows: 0
+  footer: footer,
+  number_of_rows: 100
 )
 
 File.open("./test-write.orc", "w") do |io|
@@ -66,6 +83,34 @@ File.open("./test-write.orc", "w") do |io|
   end
 end
 
+# File.open("./test-write.orc") do |io|
+#   bytes = io.getb_to_end
+
+#   puts bytes.size
+#   puts bytes.map(&.to_s(2, precision: 8))
+# end
+
 File.open("./test-write.orc") do |io|
-  pp Orc::File.new(io)
+  file = Orc::File.new(io)
+
+  reader = Orc::Reader.new(file, io)
+  reader.each_stripe do |stripe|
+    row_count = stripe.number_of_rows
+
+    streams_by_kind = stripe.streams.group_by(&.kind)
+
+    file.schema.fields.each do |field|
+      column = case field.kind
+      when Orc::Proto::Type::Kind::BOOLEAN
+        Orc::Columns::BooleanColumn.new(stripe, field)
+      else
+        next
+      end
+
+      results = column.to_a
+
+      puts "fetched #{field.kind}: #{results.size} of #{row_count}"
+      puts "examples: #{results.first(3)}"
+    end
+  end
 end

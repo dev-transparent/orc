@@ -37,5 +37,10 @@ module Orc
         Orc::Proto::Stream::Kind::ENCRYPTEDINDEX,
       ])
     end
+
+    def to_io(io)
+      buffer.rewind
+      IO.copy(buffer, io, length)
+    end
   end
 end

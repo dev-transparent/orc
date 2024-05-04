@@ -1,4 +1,9 @@
 module Orc
+    # Stripe (~250MB limit)
+    #
+    # 1. Indexes
+    # 2. Data
+    # 3. Footer
   class Stripe
     getter streams : Array(Stream)
     getter footer : Orc::Proto::StripeFooter
@@ -11,6 +16,7 @@ module Orc
 
     def self.from_reader(reader : Reader, info : Proto::StripeInformation)
       footer_offset = info.offset.not_nil! + info.index_length.not_nil! + info.data_length.not_nil!
+
       footer = reader.io.read_at(footer_offset, info.footer_length.not_nil!) do |stripe_footer_io|
         Orc::Proto::StripeFooter.from_protobuf(stripe_footer_io)
       end
@@ -30,7 +36,15 @@ module Orc
     end
 
     def to_io(io)
-      # TODO: Implement writing the stripe content and footer
+      streams.select(&.index?).each do |stream|
+        stream.to_io(io)
+      end
+
+      streams.select(&.data?).each do |stream|
+        stream.to_io(io)
+      end
+
+      footer.to_protobuf(io)
     end
   end
 end
