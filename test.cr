@@ -48,18 +48,15 @@ require "./src/orc"
 # end
 #
 
-buffer = IO::Memory.new
-writer = Orc::RunLengthBooleanWriter.new(buffer)
+boolean_column = Orc::Writers::BooleanColumn.new(1)
 
 100.times do |i|
-  writer.write(i % 2 == 0)
+  boolean_column.write(i % 2 == 0)
 end
 
-writer.flush
+boolean_column.flush
 
-streams = [
-  Orc::Stream.new(buffer, Orc::Codecs::None.new, 1u32, Orc::Proto::Stream::Kind::DATA, buffer.size.to_u64)
-]
+streams = boolean_column.streams
 
 footer = Orc::Proto::StripeFooter.new(
   streams: streams.map { |stream|

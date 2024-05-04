@@ -4,19 +4,22 @@ module Orc
     getter codec : Codec
     getter column : UInt32
     getter kind : Orc::Proto::Stream::Kind
-    getter length : UInt64
 
     delegate rewind, to: buffer
 
-    def initialize(@buffer : IO::Memory, @codec : Codec, @column : UInt32, @kind : Orc::Proto::Stream::Kind, @length : UInt64)
+    def initialize(@codec : Codec, @column : UInt32, @kind : Orc::Proto::Stream::Kind, length : Int = 64)
+      @buffer = IO::Memory.new(length)
+    end
+
+    def length
+      buffer.size.to_u64
     end
 
     def self.from_reader(reader : Reader, column : UInt32, kind : Orc::Proto::Stream::Kind, length : UInt64)
-      buffer = IO::Memory.new(length)
-      IO.copy(reader.io, buffer, length)
-      buffer.rewind
-
-      new(buffer, reader.codec, column, kind, length)
+      new(reader.codec, column, kind, length).tap do |stream|
+        IO.copy(reader.io, stream.buffer, length)
+        stream.rewind
+      end
     end
 
     def data?
