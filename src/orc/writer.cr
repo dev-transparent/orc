@@ -6,12 +6,13 @@ module Orc
 
     private getter stripes : Array(Stripe) = [] of Stripe
 
+    delegate flush, close, to: io
+
     def initialize(@io : IO)
-      write_header
+    end
 
-      yield self
-
-      write_footer
+    def write_header
+      io.write("ORC".to_slice)
     end
 
     def write_stripe(stripe : Stripe)
@@ -19,16 +20,12 @@ module Orc
       stripes << stripe
     end
 
-    private def write_header
-      io.write("ORC".to_slice)
-    end
-
-    private def write_footer
+    def write_footer(schema : Schema)
       footer = Orc::Proto::Footer.new(
         header_length: 3,
         stripes: stripe_information,
         content_length: stripe_information.sum { |info| info.index_length.not_nil! + info.data_length.not_nil! + info.footer_length.not_nil! },
-        types: types,
+        types: schema.types,
         # metadata: UserMetadataItem,
         number_of_rows: stripes.sum(&.number_of_rows),
         # statistics: ColumnStatistics,
@@ -39,25 +36,6 @@ module Orc
 
       footer.to_protobuf(IO::MultiWriter.new(footer_buffer, io))
       write_postscript
-    end
-
-    private def types : Array(Orc::Proto::Type)
-      [
-        Orc::Proto::Type.new(
-          kind: Orc::Proto::Type::Kind::STRUCT,
-          subtypes: [1u32],
-          field_names: ["Boolean"]
-          #     optional :maximum_length, :uint32, 4
-          #     optional :precision, :uint32, 5
-          #     optional :scale, :uint32, 6
-          #     repeated :attributes, StringPair, 7
-        ),
-        Orc::Proto::Type.new(
-          kind: Orc::Proto::Type::Kind::BOOLEAN,
-          subtypes: [] of UInt32,
-          field_names: [] of String
-        )
-      ]
     end
 
     private def stripe_information : Array(Orc::Proto::StripeInformation)

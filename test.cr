@@ -77,10 +77,28 @@ stripe = Orc::Stripe.new(
   number_of_rows: 100
 )
 
+schema = Orc::Schema.new(
+  types: [
+    Orc::Proto::Type.new(
+      kind: Orc::Proto::Type::Kind::STRUCT,
+      subtypes: [1u32],
+      field_names: ["Boolean"]
+    ),
+    Orc::Proto::Type.new(
+      kind: Orc::Proto::Type::Kind::BOOLEAN,
+      subtypes: [] of UInt32,
+      field_names: [] of String
+    )
+  ]
+)
+
 File.open("./test-write.orc", "w") do |io|
-  Orc::Writer.new(io) do |writer|
-    writer.write_stripe(stripe)
-  end
+  writer = Orc::Writer.new(io)
+  writer.write_header
+  writer.write_stripe(stripe)
+  writer.write_footer(schema)
+  writer.flush
+  writer.close
 end
 
 # File.open("./test-write.orc") do |io|
