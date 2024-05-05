@@ -26,6 +26,10 @@ module Orc
       end
     end
 
+    def self.from_types(types : Array(Orc::Proto::Type))
+      new(types)
+    end
+
     def build_field(type : Orc::Proto::Type) : Field
       id = @types.index(type).not_nil!
       subtypes = type.subtypes || [] of UInt32

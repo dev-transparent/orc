@@ -46,7 +46,7 @@ module Orc
         end
       end
 
-      @schema = Orc::Schema.new(footer.types.not_nil!)
+      @schema = Orc::Schema.from_types(footer.types.not_nil!)
     end
   end
 end
