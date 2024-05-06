@@ -52,24 +52,42 @@ boolean_column = Orc::Writers::BooleanColumn.new(1)
 integer_stream = Orc::Stream.new(Orc::Codecs::None.new, 2, Orc::Proto::Stream::Kind::DATA)
 integer_writer = Orc::RunLengthIntegerWriter.new(integer_stream.buffer, true)
 
+string_length_stream = Orc::Stream.new(Orc::Codecs::None.new, 3, Orc::Proto::Stream::Kind::LENGTH)
+string_length_writer = Orc::RunLengthIntegerWriter.new(string_length_stream.buffer, false)
+
+string_data_stream = Orc::Stream.new(Orc::Codecs::None.new, 3, Orc::Proto::Stream::Kind::DATA)
+string_data_writer = Orc::RunLengthIntegerWriter.new(string_data_stream.buffer, false)
+
+string_dictionary_stream = Orc::Stream.new(Orc::Codecs::None.new, 3, Orc::Proto::Stream::Kind::DICTIONARYDATA)
+
+string_writer = Orc::StringDictionaryWriter.new(string_length_writer, string_data_writer, string_dictionary_stream.buffer)
+
+words = ["hello", "goodbye", "how are you?", "good morning", "good night"]
+
 100.times do |i|
   boolean_column.write(i % 2 == 0)
   integer_writer.write(i * -4)
+
+  word = words[i % words.size]
+
+  string_writer.write(word)
 end
 
 boolean_column.flush
 integer_writer.flush
+string_writer.flush
 
-streams = boolean_column.streams + [integer_stream]
+streams = boolean_column.streams + [integer_stream] + [string_length_stream, string_data_stream, string_dictionary_stream]
 
 footer = Orc::Proto::StripeFooter.new(
-  streams: streams.map { |stream|
+  streams: streams.flat_map { |stream|
     Orc::Proto::Stream.new(kind: stream.kind, column: stream.column, length: stream.length)
   },
   columns: [
     Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
     Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
     Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
+    Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DICTIONARY),
   ]
 )
 
@@ -83,8 +101,8 @@ schema = Orc::Schema.from_types(
   types: [
     Orc::Proto::Type.new(
       kind: Orc::Proto::Type::Kind::STRUCT,
-      subtypes: [1u32, 2u32],
-      field_names: ["Boolean", "Integer"]
+      subtypes: [1u32, 2u32, 3u32],
+      field_names: ["Boolean", "Integer", "String"]
     ),
     Orc::Proto::Type.new(
       kind: Orc::Proto::Type::Kind::BOOLEAN,
@@ -93,6 +111,11 @@ schema = Orc::Schema.from_types(
     ),
     Orc::Proto::Type.new(
       kind: Orc::Proto::Type::Kind::INT,
+      subtypes: [] of UInt32,
+      field_names: [] of String
+    ),
+    Orc::Proto::Type.new(
+      kind: Orc::Proto::Type::Kind::STRING,
       subtypes: [] of UInt32,
       field_names: [] of String
     )
@@ -128,8 +151,8 @@ File.open("./test-write.orc") do |io|
       column = case field.kind
       when Orc::Proto::Type::Kind::BOOLEAN
         Orc::Columns::BooleanColumn.new(stripe, field)
-      when Orc::Proto::Type::Kind::INT
-        Orc::Columns::IntegerColumn.new(stripe, field)
+      when Orc::Proto::Type::Kind::STRING
+        Orc::Columns::StringColumn.new(stripe, field)
       else
         next
       end
