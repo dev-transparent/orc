@@ -19,10 +19,10 @@ module Orc
       @root = types.first
       @fields = [] of Field
 
-      root.subtypes.try &.each do |subtype|
+      root.subtypes.try &.each_with_index(1) do |subtype, id|
         type = @types[subtype]
 
-        @fields << build_field(type)
+        @fields << build_field(type, id)
       end
     end
 
@@ -30,15 +30,14 @@ module Orc
       new(types)
     end
 
-    def build_field(type : Orc::Proto::Type) : Field
-      id = @types.index(type).not_nil!
+    def build_field(type : Orc::Proto::Type, id : Int32) : Field
       subtypes = type.subtypes || [] of UInt32
 
       Field.new(
         id: id,
         kind: type.kind.not_nil!,
         children: subtypes.map { |subtype|
-          build_field(types[subtype])
+          build_field(types[subtype], id)
         }
       )
     end
