@@ -49,20 +49,25 @@ require "./src/orc"
 #
 
 boolean_column = Orc::Writers::BooleanColumn.new(1)
+integer_stream = Orc::Stream.new(Orc::Codecs::None.new, 2, Orc::Proto::Stream::Kind::DATA)
+integer_writer = Orc::RunLengthIntegerWriter.new(integer_stream.buffer, true)
 
 100.times do |i|
   boolean_column.write(i % 2 == 0)
+  integer_writer.write(i * -4)
 end
 
 boolean_column.flush
+integer_writer.flush
 
-streams = boolean_column.streams
+streams = boolean_column.streams + [integer_stream]
 
 footer = Orc::Proto::StripeFooter.new(
   streams: streams.map { |stream|
     Orc::Proto::Stream.new(kind: stream.kind, column: stream.column, length: stream.length)
   },
   columns: [
+    Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
     Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
     Orc::Proto::ColumnEncoding.new(kind: Orc::Proto::ColumnEncoding::Kind::DIRECT),
   ]
@@ -74,15 +79,20 @@ stripe = Orc::Stripe.new(
   number_of_rows: 100
 )
 
-schema = Orc::Schema.new(
+schema = Orc::Schema.from_types(
   types: [
     Orc::Proto::Type.new(
       kind: Orc::Proto::Type::Kind::STRUCT,
-      subtypes: [1u32],
-      field_names: ["Boolean"]
+      subtypes: [1u32, 2u32],
+      field_names: ["Boolean", "Integer"]
     ),
     Orc::Proto::Type.new(
       kind: Orc::Proto::Type::Kind::BOOLEAN,
+      subtypes: [] of UInt32,
+      field_names: [] of String
+    ),
+    Orc::Proto::Type.new(
+      kind: Orc::Proto::Type::Kind::INT,
       subtypes: [] of UInt32,
       field_names: [] of String
     )
@@ -118,6 +128,8 @@ File.open("./test-write.orc") do |io|
       column = case field.kind
       when Orc::Proto::Type::Kind::BOOLEAN
         Orc::Columns::BooleanColumn.new(stripe, field)
+      when Orc::Proto::Type::Kind::INT
+        Orc::Columns::IntegerColumn.new(stripe, field)
       else
         next
       end
@@ -125,7 +137,7 @@ File.open("./test-write.orc") do |io|
       results = column.to_a
 
       puts "fetched #{field.kind}: #{results.size} of #{row_count}"
-      puts "examples: #{results.first(3)}"
+      puts "examples: #{results.first(100)}"
     end
   end
 end

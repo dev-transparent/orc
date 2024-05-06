@@ -8,6 +8,8 @@ module Orc
     private property repeat : Bool = false
     private property signed : Bool
 
+    @delta : Int32 = 0
+
     def initialize(@io : IO, @signed : Bool = false)
       @literals = uninitialized Int64[128]
     end
@@ -24,7 +26,7 @@ module Orc
       end
 
       result = if @repeat
-        @literals[0]
+        @literals[0] + @used * @delta
       else
         @literals[@used]
       end
@@ -43,7 +45,7 @@ module Orc
         @literals_size = control.to_i + 3
         @repeat = true
 
-        delta = @io.read_byte.not_nil!.to_i8.to_i
+        @delta = @io.read_byte.not_nil!.to_i8!.to_i32
 
         if signed
           @literals[0] = read_vs_long
