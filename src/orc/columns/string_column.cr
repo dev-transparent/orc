@@ -22,11 +22,11 @@ module Orc
       end
 
       def length_stream : Stream
-        stripe.streams.find! { |stream| stream.kind == Proto::Stream::Kind::LENGTH && stream.column == field.id }
+        streams.find! { |stream| stream.kind == Proto::Stream::Kind::LENGTH }
       end
 
       def dictionary_stream : Stream
-        stripe.streams.find! { |stream| stream.kind == Proto::Stream::Kind::DICTIONARYDATA && stream.column == field.id }
+        streams.find! { |stream| stream.kind == Proto::Stream::Kind::DICTIONARYDATA }
       end
 
       def next
