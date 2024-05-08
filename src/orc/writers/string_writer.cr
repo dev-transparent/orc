@@ -3,7 +3,7 @@ require "./base"
 module Orc
   module Writers
     class StringWriter < Base(String)
-      def initialize(@writer : StringDictionaryWriter)
+      def initialize(@writer : StringDictionaryWriter | StringDirectWriter)
       end
 
       def write(value : String)
