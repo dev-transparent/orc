@@ -1,7 +1,7 @@
-require "./string_reader"
-
 module Orc
-  class StringDirectReader < StringReader
+  class StringDirectReader
+    include Iterator(String)
+
     def initialize(@length : RunLengthIntegerReader, @data : IO)
     end
 

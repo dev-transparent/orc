@@ -1,7 +1,7 @@
-require "./string_reader"
-
 module Orc
-  class StringDictionaryReader < StringReader
+  class StringDictionaryReader
+    include Iterator(String)
+
     @bytes : Bytes
     @lengths : Array(Int64) = [] of Int64
     @offsets : Array(Int64) = [] of Int64

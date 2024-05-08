@@ -67,7 +67,7 @@ module Orc
 
     def read_vs_long
       result = read_vu_long
-      ((result.to_u64 >> 1.to_u64) ^ ((result.to_u64 & 1.to_u64)).to_i64 * -1).to_i64
+      ((result.to_u64 >> 1.to_u64) ^ ((result.to_u64 & 1.to_u64)).to_i64 * -1).to_i64!
     end
 
     def read_vu_long
