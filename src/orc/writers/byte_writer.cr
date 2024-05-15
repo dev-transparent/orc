@@ -10,6 +10,10 @@ module Orc
         @writer.write(value)
       end
 
+      def statistics
+        # Orc::Proto::BucketStatistics.new(count: @count)
+      end
+
       def flush
         @writer.flush
       end
