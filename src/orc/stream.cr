@@ -7,8 +7,7 @@ module Orc
 
     delegate rewind, to: buffer
 
-    def initialize(@codec : Codec, @column : UInt32, @kind : Orc::Proto::Stream::Kind, length : Int = 64)
-      @buffer = IO::Memory.new(length)
+    def initialize(@codec : Codec, @column : UInt32, @kind : Orc::Proto::Stream::Kind, @buffer : IO::Memory = IO::Memory.new(64))
     end
 
     def length
@@ -16,7 +15,8 @@ module Orc
     end
 
     def self.from_reader(reader : Reader, column : UInt32, kind : Orc::Proto::Stream::Kind, length : UInt64)
-      new(reader.codec, column, kind, length).tap do |stream|
+      buffer = IO::Memory.new(length)
+      new(reader.codec, column, kind, buffer).tap do |stream|
         IO.copy(reader.io, stream.buffer, length)
         stream.rewind
       end
