@@ -1,5 +1,8 @@
 module Orc
-  class ColumnReader(T)
+  class BaseColumnReader
+  end
+
+  class ColumnReader(T) < BaseColumnReader
     include Iterator(T | Nil)
 
     def initialize(@reader : Readers::Base(T), @presence : RunLengthBooleanReader?)
