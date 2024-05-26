@@ -1,5 +1,8 @@
 module Orc
-  abstract class Column(T)
+  abstract class BaseColumn
+  end
+
+  abstract class Column(T) < BaseColumn
     include Iterator(T | Nil)
 
     getter id : Int32
