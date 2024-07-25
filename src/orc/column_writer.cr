@@ -7,6 +7,12 @@ module Orc
     def initialize(@writer : Writers::Base(T), @presence : RunLengthBooleanWriter)
     end
 
+    def from_vector(vector : Vector(T | Nil))
+      vector.size.times do |i|
+        write(vector[i])
+      end
+    end
+
     def write(value : T?)
       if !value.nil?
         @writer.write(value)
