@@ -25,15 +25,16 @@ module Orc
   end
 
   struct Schema
-    property id : UInt32 = 1
+    private property id : UInt32
     property fields : Array(Field)
 
     def initialize(@fields : Array(Field) = [] of Field)
+      @id = 1
     end
 
     def next_id : UInt32
       id.tap do
-        id += 1
+        @id += 1
       end
     end
 
