@@ -5,46 +5,69 @@ module Orc
     # 2. Data
     # 3. Footer
   class Stripe
-    getter streams : Array(Stream)
-    getter footer : Orc::Proto::StripeFooter
-    getter number_of_rows : UInt64
-    getter column_encodings : Array(Orc::Proto::ColumnEncoding)
+    getter schema : Schema
+    getter columns : Array(Column)
+    getter rows : UInt64
 
-    def initialize(@streams : Array(Stream), @footer : Orc::Proto::StripeFooter, @number_of_rows : UInt64)
-      @column_encodings = @footer.columns.not_nil!
+    def initialize(@schema : Schema)
+      @rows = 0u64
+      @columns = [] of Column
     end
 
-    def self.from_reader(reader : Reader, info : Proto::StripeInformation)
-      footer_offset = info.offset.not_nil! + info.index_length.not_nil! + info.data_length.not_nil!
+    def write(batch : WriteBatch)
+      schema.fields.each_with_index do |field, column_index|
+        column = columns[column_index] # Fields and columns should line up...
+        vector = batch.columns[column_index]
 
-      footer = reader.io.read_at(footer_offset, info.footer_length.not_nil!) do |stripe_footer_io|
-        Orc::Proto::StripeFooter.from_protobuf(stripe_footer_io)
+        write_column(field, column, vector, batch.rows)
       end
 
-      reader.io.seek(info.offset.not_nil!)
-
-      streams = footer.streams.not_nil!.map do |stream|
-        Stream.from_reader(
-          reader: reader,
-          column: stream.column.not_nil!,
-          length: stream.length.not_nil!,
-          kind: stream.kind.not_nil!,
-        )
-      end
-
-      new(streams, footer, info.number_of_rows.not_nil!)
+      @rows += batch.rows
     end
 
-    def to_io(io)
-      streams.select(&.index?).each do |stream|
-        stream.to_io(io)
-      end
+    private def write_column(field : Field, column : Column, vector : FieldVector, rows : Int32)
+      case field.kind
+      when .int?
+        int_vector = vector.as(IntVector)
+        int_column = column.as(IntDirectColumn)
 
-      streams.select(&.data?).each do |stream|
-        stream.to_io(io)
-      end
+        rows.times do |row|
+          if int_vector.nulls[row]
+            int_column.append(nil)
+          else
+            int_column.append(int_vector.values[row].not_nil!)
+          end
+        end
+      when .string?
+        string_vector = vector.as(StringVector)
+        string_column = column.as(StringDirectColumn)
 
-      footer.to_protobuf(io)
+        rows.times do |row|
+          if string_vector.nulls[row]
+            string_column.append(nil)
+          else
+            string_column.append(string_vector.values[row].not_nil!)
+          end
+        end
+      when .struct?
+        struct_vector = vector.as(StructVector)
+        struct_column = column.as(StructDirectColumn)
+
+        rows.times do |row|
+          if struct_vector.nulls[row]
+            struct_column.present.append(false)
+          else
+            struct_column.present.append(true)
+
+            field.fields.each_with_index do |field, column_index|
+              vector = struct_vector.values[column_index]
+              column = struct_column.columns[column_index]
+
+              write_column(field, column, vector, rows)
+            end
+          end
+        end
+      end
     end
   end
 end

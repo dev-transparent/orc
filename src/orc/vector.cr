@@ -1,23 +1,61 @@
+require "./buffer"
+
 module Orc
-  # Similar to Array but has no bounds checking at all and is very unsafe... but performant
-  class Vector(T)
-    getter size : Int32
+  abstract struct FieldVector
+    def self.for_field(field : Field, capacity : Int32)
+      case field.kind
+      when .string?
+        StringVector.new(capacity)
+      when .struct?
+        StructVector.for_field(field, capacity)
+      else
+        IntVector.new(capacity)
+      end
+    end
+  end
 
-    def initialize(@buffer : Pointer(T), @size : Int32)
+  abstract struct PrimitiveVector(T) < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(T?)
+
+    def initialize(capacity : Int32)
+      @nulls = Array(Bool).new(capacity, true)
+      @values = Array(T?).new(capacity, nil)
+    end
+  end
+
+  struct BooleanVector < PrimitiveVector(Bool)
+  end
+
+  struct IntVector < PrimitiveVector(Int64)
+  end
+
+  struct FloatVector < PrimitiveVector(Float64)
+  end
+
+  struct StringVector < PrimitiveVector(String)
+  end
+
+  struct BytesVector < PrimitiveVector(Bytes)
+  end
+
+  struct StructVector < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(FieldVector)
+
+    def initialize(@column_count : Int32, @capacity : Int32)
+      @nulls = Array(Bool).new(@capacity, true)
+      @values = Array(FieldVector).new(@column_count)
     end
 
-    def initialize(@size : Int32)
-      @buffer = Pointer(T).new(@size)
-    end
+    def self.for_field(field : Field, capacity : Int32)
+      vector = StructVector.new(field.fields.size, capacity)
 
-    @[AlwaysInline]
-    def [](index)
-      @buffer[index]
-    end
+      field.fields.each_with_index do |field, index|
+        vector.values << FieldVector.for_field(field, capacity)
+      end
 
-    @[AlwaysInline]
-    def []=(index, value)
-      @buffer[index] = value
+      vector
     end
   end
 end

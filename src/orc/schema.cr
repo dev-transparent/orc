@@ -1,45 +1,38 @@
 module Orc
-  class Field
-    getter id : Int32
-    getter kind : Orc::Proto::Type::Kind
-    getter children : Array(Field)
+  struct Field
+    property id : UInt32
+    property name : String
+    property kind : Proto::Type::Kind
+    property encoding : Proto::ColumnEncoding
+    property fields : Array(Field)
 
-    def initialize(@id : Int32, @kind : Orc::Proto::Type::Kind, @children : Array(Field) = [] of Field)
+    def initialize(@id, @name, @kind, @encoding, @fields = [] of Field)
+    end
+
+    def all_fields
+      fields.flat_map(&.all_fields)
+    end
+
+    def to_protobuf : Array(Proto::Type)
+      [
+        Proto::Type.new(
+          kind: kind,
+          subtypes: fields.map(&.id),
+          field_names: fields.map(&.name)
+        ),
+        fields.map(&.to_protobuf)
+      ].flatten
     end
   end
 
-  class Schema
-    getter root : Orc::Proto::Type
-    getter types : Array(Orc::Proto::Type)
-    getter fields : Array(Field)
+  struct Schema
+    property fields : Array(Field)
 
-    delegate field_names, to: root
-
-    def initialize(@types : Array(Orc::Proto::Type))
-      @root = types.first
-      @fields = [] of Field
-
-      root.subtypes.try &.each_with_index(1) do |subtype, id|
-        type = @types[subtype]
-
-        @fields << build_field(type, id)
-      end
+    def initialize(@fields : Array(Field) = [] of Field)
     end
 
-    def self.from_types(types : Array(Orc::Proto::Type))
-      new(types)
-    end
-
-    def build_field(type : Orc::Proto::Type, id : Int32) : Field
-      subtypes = type.subtypes || [] of UInt32
-
-      Field.new(
-        id: id,
-        kind: type.kind.not_nil!,
-        children: subtypes.map { |subtype|
-          build_field(types[subtype], id)
-        }
-      )
+    def to_protobuf
+      fields.flat_map(&.to_protobuf)
     end
   end
 end

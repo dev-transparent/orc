@@ -34,7 +34,7 @@ module Orc
         end
       else
         if @tail_run_length == 1
-          @delta = (value - @literals[@num_literals - 1]).to_i32
+          @delta = (value - @literals[@num_literals - 1]).to_i32!
 
           if @delta < MIN_DELTA || @delta > MAX_DELTA
             @tail_run_length = 1
@@ -44,7 +44,7 @@ module Orc
         elsif value == @literals[@num_literals - 1] + @delta.to_i64
           @tail_run_length += 1
         else
-          @delta = (value - @literals[@num_literals - 1]).to_i32
+          @delta = (value - @literals[@num_literals - 1]).to_i32!
 
           if @delta < MIN_DELTA || @delta > MAX_DELTA
             @tail_run_length = 1
