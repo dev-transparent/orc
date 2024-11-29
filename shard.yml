@@ -10,5 +10,5 @@ license: MIT
 
 dependencies:
   protobuf:
-    github: jeromegn/protobuf.cr
-    version: ~> 2.3.0
+    github: garymardell/protobuf.cr
+    branch: perf
