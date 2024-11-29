@@ -19,20 +19,32 @@ module Orc
           kind: kind,
           subtypes: fields.map(&.id),
           field_names: fields.map(&.name)
-        ),
-        fields.map(&.to_protobuf)
-      ].flatten
+        )
+      ] + fields.flat_map(&.to_protobuf)
     end
   end
 
   struct Schema
+    property id : UInt32 = 1
     property fields : Array(Field)
 
     def initialize(@fields : Array(Field) = [] of Field)
     end
 
+    def next_id : UInt32
+      id.tap do
+        id += 1
+      end
+    end
+
     def to_protobuf
-      fields.flat_map(&.to_protobuf)
+      [
+        Proto::Type.new(
+          kind: Proto::Type::Kind::STRUCT,
+          subtypes: fields.map(&.id),
+          field_names: fields.map(&.name)
+        )
+      ] + fields.flat_map(&.to_protobuf)
     end
   end
 end
