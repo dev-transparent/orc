@@ -6,7 +6,7 @@ describe Orc::RunLengthIntegerReaderV2 do
     decoded.should eq([10000, 10000, 10000, 10000, 10000])
   end
 
-  it "decodes direct", focus: true do
+  it "decodes direct" do
     decoded = Orc::RunLengthIntegerReaderV2.new(IO::Memory.new(Bytes[0x5e, 0x03, 0x5c, 0xa1, 0xab, 0x1e, 0xde, 0xad, 0xbe, 0xef])).to_a
     decoded.should eq([23713, 43806, 57005, 48879])
   end

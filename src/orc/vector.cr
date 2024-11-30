@@ -14,29 +14,54 @@ module Orc
     end
   end
 
-  abstract struct PrimitiveVector(T) < FieldVector
+  struct BooleanVector < FieldVector
     getter nulls : Array(Bool)
-    getter values : Array(T?)
+    getter values : Array(Bool?)
 
     def initialize(capacity : Int32)
       @nulls = Array(Bool).new(capacity, true)
-      @values = Array(T?).new(capacity, nil)
+      @values = Array(Bool?).new(capacity, nil)
     end
   end
 
-  struct BooleanVector < PrimitiveVector(Bool)
+  struct IntVector < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(Int64?)
+
+    def initialize(capacity : Int32)
+      @nulls = Array(Bool).new(capacity, true)
+      @values = Array(Int64?).new(capacity, nil)
+    end
   end
 
-  struct IntVector < PrimitiveVector(Int64)
+  struct FloatVector < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(Float64??)
+
+    def initialize(capacity : Int32)
+      @nulls = Array(Bool).new(capacity, true)
+      @values = Array(Float64?).new(capacity, nil)
+    end
   end
 
-  struct FloatVector < PrimitiveVector(Float64)
+  struct StringVector < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(String?)
+
+    def initialize(capacity : Int32)
+      @nulls = Array(Bool).new(capacity, true)
+      @values = Array(String?).new(capacity, nil)
+    end
   end
 
-  struct StringVector < PrimitiveVector(String)
-  end
+  struct BytesVector < FieldVector
+    getter nulls : Array(Bool)
+    getter values : Array(Bytes?)
 
-  struct BytesVector < PrimitiveVector(Bytes)
+    def initialize(capacity : Int32)
+      @nulls = Array(Bool).new(capacity, true)
+      @values = Array(Bytes?).new(capacity, nil)
+    end
   end
 
   struct StructVector < FieldVector
