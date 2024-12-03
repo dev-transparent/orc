@@ -9,9 +9,9 @@ module Orc
       super
 
       @size = 0
-      @data = DataStream(IntegerRLEBuffer).new(IntegerRLEBuffer.new(IO::Memory.new, signed: true))
-      @secondary = SecondaryStream(IntegerRLEBuffer).new(IntegerRLEBuffer.new(IO::Memory.new, signed: false))
-      @present = PresentStream.new
+      @data = DataStream(IntegerRLEBuffer).new(@id, IntegerRLEBuffer.new(IO::Memory.new, signed: true))
+      @secondary = SecondaryStream(IntegerRLEBuffer).new(@id, IntegerRLEBuffer.new(IO::Memory.new, signed: false))
+      @present = PresentStream.new(@id)
     end
 
     def encoding : Proto::ColumnEncoding

@@ -8,8 +8,8 @@ module Orc
       super
 
       @size = 0
-      @data = DataStream(BooleanRLEBuffer).new
-      @present = PresentStream.new
+      @data = DataStream(BooleanRLEBuffer).new(@id)
+      @present = PresentStream.new(@id)
     end
 
     def encoding : Proto::ColumnEncoding

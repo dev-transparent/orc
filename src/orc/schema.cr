@@ -3,10 +3,9 @@ module Orc
     property id : UInt32
     property name : String
     property kind : Proto::Type::Kind
-    property encoding : Proto::ColumnEncoding
     property fields : Array(Field)
 
-    def initialize(@id, @name, @kind, @encoding, @fields = [] of Field)
+    def initialize(@id, @name, @kind, @fields = [] of Field)
     end
 
     def all_fields
@@ -35,6 +34,33 @@ module Orc
     def next_id : UInt32
       id.tap do
         @id += 1
+      end
+    end
+
+    def self.from_footer(footer : Proto::Footer)
+      schema = Schema.new
+      types = footer.types.not_nil!
+
+      pp footer
+
+      root = types.first
+      root.subtypes.not_nil!.each_with_index do |subtype, index|
+        schema.fields << Orc::Field.new(
+          id: subtype.not_nil!,
+          name: root.field_names.not_nil![index],
+          kind: types[subtype.not_nil!].kind.not_nil!,
+        )
+
+        # TODO: Extract fields for subtypes...
+      end
+
+      schema
+    end
+
+    def self.fields_for_type(type)
+      Orc::Field.new()
+      type.subtypes.not_nil!.each do |subtype|
+
       end
     end
 

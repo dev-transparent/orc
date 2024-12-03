@@ -1,8 +1,8 @@
 module Orc
   class DataStream(B) < Stream
-    BUFFER_SIZE = 64 * 1024
+    getter column : UInt32
 
-    def initialize(@buffer : B = B.new(IO::Memory.new(BUFFER_SIZE)))
+    def initialize(@column, @buffer : B = B.new(IO::Memory.new))
     end
 
     def kind

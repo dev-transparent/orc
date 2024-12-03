@@ -9,7 +9,7 @@ module Orc
     delegate file, to: reader
 
     def initialize(@reader : Reader)
-      @stripes = file.footer.stripes.not_nil!
+      @stripes = reader.footer.stripes.not_nil!
     end
 
     def next

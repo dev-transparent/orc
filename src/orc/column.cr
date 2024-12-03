@@ -7,6 +7,7 @@ module Orc
 
     abstract def encoding : Proto::ColumnEncoding
     abstract def streams
+    abstract def bytesize
     abstract def to_io(io)
   end
 end

@@ -8,7 +8,7 @@ module Orc
       super
 
       @size = 0
-      @present = PresentStream.new
+      @present = PresentStream.new(@id)
       @columns = [] of Column
     end
 

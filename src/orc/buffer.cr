@@ -1,13 +1,13 @@
 module Orc
   abstract struct Buffer(T)
-    getter memory : IO::Memory
-    getter size : Int32
+    getter memory : IO
+    getter size : UInt64
 
-    def initialize(@memory : IO::Memory)
-      @size = 0
+    def initialize(@memory : IO)
+      @size = 0u64
     end
 
-    def initialize(@memory : IO::Memory, @size : Int32)
+    def initialize(@memory : IO, @size : UInt64)
     end
 
     def to_io(io)
@@ -16,7 +16,7 @@ module Orc
     end
 
     def bytesize
-      @memory.size
+      @size
     end
 
     abstract def append(value : T)

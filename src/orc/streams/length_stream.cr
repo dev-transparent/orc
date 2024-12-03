@@ -1,6 +1,8 @@
 module Orc
   class LengthStream < Stream
-    def initialize(@buffer : IntegerRLEBuffer = IntegerRLEBuffer.new(IO::Memory.new, false))
+    getter column : UInt32
+
+    def initialize(@column : UInt32, @buffer : IntegerRLEBuffer = IntegerRLEBuffer.new(IO::Memory.new, false))
     end
 
     def kind

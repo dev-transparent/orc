@@ -9,9 +9,9 @@ module Orc
       super
 
       @size = 0
-      @data = DataStream(BytesBuffer).new
-      @length = LengthStream.new
-      @present = PresentStream.new
+      @data = DataStream(BytesBuffer).new(@id)
+      @length = LengthStream.new(@id)
+      @present = PresentStream.new(@id)
     end
 
     def encoding : Proto::ColumnEncoding

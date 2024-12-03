@@ -1,6 +1,8 @@
 module Orc
   class PresentStream < Stream
-    def initialize(@buffer : BooleanRLEBuffer = BooleanRLEBuffer.new(IO::Memory.new))
+    getter column : UInt32
+
+    def initialize(@column : UInt32, @buffer : BooleanRLEBuffer = BooleanRLEBuffer.new(IO::Memory.new))
     end
 
     def kind

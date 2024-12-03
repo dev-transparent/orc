@@ -8,8 +8,8 @@ module Orc
       super
 
       @size = 0
-      @data = DataStream(FloatBuffer).new
-      @present = PresentStream.new
+      @data = DataStream(FloatBuffer).new(@id)
+      @present = PresentStream.new(@id)
     end
 
     def encoding : Proto::ColumnEncoding
