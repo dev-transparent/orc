@@ -13,6 +13,10 @@ module Orc
       @buffer.append(value)
     end
 
+    def values
+      @buffer.values
+    end
+
     def bytesize
       @buffer.bytesize
     end

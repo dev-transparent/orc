@@ -9,7 +9,6 @@ module Orc
 
     def append(value : Int64)
       @writer.write(value)
-      @size += 1
     end
 
     def flush

@@ -41,8 +41,6 @@ module Orc
       schema = Schema.new
       types = footer.types.not_nil!
 
-      pp footer
-
       root = types.first
       root.subtypes.not_nil!.each_with_index do |subtype, index|
         schema.fields << Orc::Field.new(

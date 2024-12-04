@@ -35,32 +35,64 @@ module Orc
       end
 
       stream_offset = information.offset.not_nil!
-      streams = stripe_footer.streams.not_nil!.compact_map do |stream|
+      streams_by_column_and_kind = {} of Tuple(UInt32, Proto::Stream::Kind) => IO::Memory
+
+      # Allocate buffers for each stream
+      stripe_footer.streams.not_nil!.each do |stream|
         reader.file.read_at(stream_offset, stream.length.not_nil!) do |io|
           stream_offset += stream.length.not_nil!
 
-          case stream.kind.not_nil!
-          when Orc::Proto::Stream::Kind::DATA
-            # TODO: Get the appropriate buffer for the type...from the schema
-            DataStream.new(stream.column.not_nil!, BytesBuffer.new(io, stream.length.not_nil!))
-          when Orc::Proto::Stream::Kind::LENGTH
-            # LengthStream.new()
-            next
-          when Orc::Proto::Stream::Kind::DICTIONARYDATA
-            next
-          when Orc::Proto::Stream::Kind::PRESENT
-            next
-          when Orc::Proto::Stream::Kind::ROWINDEX
-            next
+          streams_by_column_and_kind[{ stream.column.not_nil!, stream.kind.not_nil! }] = IO::Memory.new(io.getb_to_end)
+        end
+      end
+
+      # Generate each column for the schema and pull in the relevant fields
+      stripe = Stripe.new(reader.schema, information.number_of_rows.not_nil!)
+
+      reader.schema.fields.each do |field|
+        encoding = stripe_footer.columns.not_nil![field.id]
+
+        case field.kind
+        when .boolean?
+          data_buffer = streams_by_column_and_kind[{ field.id, Proto::Stream::Kind::DATA }]
+          data = DataStream(BooleanRLEBuffer).new(field.id, BooleanRLEBuffer.new(data_buffer))
+
+          present_buffer = streams_by_column_and_kind[{ field.id, Proto::Stream::Kind::PRESENT }]?
+          present = if present_buffer
+            PresentStream.new(field.id, BooleanRLEBuffer.new(present_buffer))
+          end
+
+          stripe.columns << BooleanDirectColumn.new(
+            id: field.id,
+            size: 0, # TODO: Find the size of the column?
+            data: data,
+            present: present,
+          )
+        when .string?
+          case encoding.kind.not_nil!
+          when .direct?
+            data_buffer = streams_by_column_and_kind[{ field.id, Proto::Stream::Kind::DATA }]
+            data = DataStream(BytesBuffer).new(field.id, BytesBuffer.new(data_buffer))
+
+            length_buffer = streams_by_column_and_kind[{ field.id, Proto::Stream::Kind::LENGTH }]
+            length = LengthStream.new(field.id, IntegerRLEBuffer.new(length_buffer, false))
+
+            present_buffer = streams_by_column_and_kind[{ field.id, Proto::Stream::Kind::PRESENT }]?
+            present = if present_buffer
+              PresentStream.new(field.id, BooleanRLEBuffer.new(present_buffer))
+            end
+
+            stripe.columns << StringDirectColumn.new(
+              id: field.id,
+              size: 0, # TODO: Find the size of the column?
+              data: data,
+              length: length,
+              present: present,
+            )
           end
         end
       end
 
-      streams_by_columns = streams.group_by(&.column)
-
-      # Generate each column for the schema and pull in the relevant fields
-
-      stripe = Stripe.new(reader.schema, information.number_of_rows.not_nil!)
       stripe
     end
 

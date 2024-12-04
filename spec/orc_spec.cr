@@ -34,7 +34,7 @@ describe Orc do
     File.open("./tmp/test.orc", "rb") do |io|
       reader = Orc::Reader.new(io)
       reader.each_stripe.each do |stripe|
-        pp stripe
+        column = stripe.columns.first
       end
     end
   end

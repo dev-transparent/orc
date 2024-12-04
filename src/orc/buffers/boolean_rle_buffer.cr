@@ -9,7 +9,10 @@ module Orc
 
     def append(value : Bool)
       @writer.write(value)
-      @size += 1
+    end
+
+    def values
+      RunLengthBooleanReader.new(@memory).to_a
     end
 
     def flush

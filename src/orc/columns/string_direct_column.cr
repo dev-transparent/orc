@@ -2,7 +2,7 @@ module Orc
   class StringDirectColumn < Column
     property data : DataStream(BytesBuffer)
     property length : LengthStream
-    property present : PresentStream
+    property present : PresentStream?
 
     property size : Int32
 
@@ -15,6 +15,9 @@ module Orc
       @present = PresentStream.new(@id)
     end
 
+    def initialize(@id : UInt32, @size : Int32, @data : DataStream(BytesBuffer), @length : LengthStream, @present : PresentStream? = nil)
+    end
+
     def encoding : Proto::ColumnEncoding
       Proto::ColumnEncoding.new(kind: Proto::ColumnEncoding::Kind::DIRECT)
     end
@@ -25,12 +28,16 @@ module Orc
 
         data.append(bytes)
         length.append(bytes.size)
-        present.append(true)
+        present.try &.append(true)
       else
-        present.append(false)
+        present.try &.append(false)
       end
 
       @size += 1
+    end
+
+    def each
+      ColumnIterator(String?).new(self)
     end
 
     def to_io(io)
@@ -45,6 +52,17 @@ module Orc
 
     def streams
       {data, present, length}
+    end
+
+    class ColumnIterator(T)
+      include Iterator(T)
+
+      def initialize(@column : StringDirectColumn)
+      end
+
+      def next
+        stop
+      end
     end
   end
 end

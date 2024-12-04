@@ -30,7 +30,9 @@ module Orc
       stripe_offset = io.pos
 
       streams = stripe.columns.flat_map do |column|
-        column.streams.to_a.map do |stream|
+        column.streams.to_a.compact_map do |stream|
+          next unless stream
+
           Proto::Stream.new(
             kind: stream.kind,
             column: column.id,
@@ -45,11 +47,13 @@ module Orc
 
       stripe_footer = Proto::StripeFooter.new(
         streams: streams,
-        columns: column_encodings
+        columns: [Proto::ColumnEncoding.new(kind: Proto::ColumnEncoding::Kind::DIRECT)] + column_encodings
       )
 
       stripe.columns.each do |column|
         column.streams.each do |stream|
+          next unless stream
+
           stream.flush
           stream.to_io(io)
         end
