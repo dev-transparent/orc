@@ -33,6 +33,9 @@ module Orc
         column.streams.to_a.compact_map do |stream|
           next unless stream
 
+          # Flush every stream and writer to the underlying memory to ensure bytesize is correct
+          stream.flush
+
           Proto::Stream.new(
             kind: stream.kind,
             column: column.id,
@@ -54,7 +57,6 @@ module Orc
         column.streams.each do |stream|
           next unless stream
 
-          stream.flush
           stream.to_io(io)
         end
       end

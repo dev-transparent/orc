@@ -4,18 +4,18 @@ module Orc
     property length : LengthStream
     property present : PresentStream?
 
-    property size : Int32
+    property size : UInt64
 
     def initialize(@id : UInt32)
       super
 
-      @size = 0
+      @size = 0u64
       @data = DataStream(BytesBuffer).new(@id)
       @length = LengthStream.new(@id)
       @present = PresentStream.new(@id)
     end
 
-    def initialize(@id : UInt32, @size : Int32, @data : DataStream(BytesBuffer), @length : LengthStream, @present : PresentStream? = nil)
+    def initialize(@id : UInt32, @size : UInt64, @data : DataStream(BytesBuffer), @length : LengthStream, @present : PresentStream? = nil)
     end
 
     def encoding : Proto::ColumnEncoding
@@ -37,7 +37,7 @@ module Orc
     end
 
     def each
-      ColumnIterator(String?).new(self)
+      StringDirectColumnIterator.new(self)
     end
 
     def to_io(io)
@@ -54,14 +54,51 @@ module Orc
       {data, present, length}
     end
 
-    class ColumnIterator(T)
-      include Iterator(T)
+    private class StringDirectColumnIterator
+      include Iterator(String?)
+
+      @present_iterator : Iterator(Bool)?
+      @length_iterator : Iterator(Int64)
 
       def initialize(@column : StringDirectColumn)
+        @present_iterator = @column.present.try &.values.each
+        @length_iterator = @column.length.values.each
+
+        @data_memory = @column.data.buffer.memory.to_slice
+        @data_offset = 0
+
+        @row = 0
       end
 
       def next
-        stop
+        if @row >= @column.size
+          return stop
+        end
+
+        is_present = if iterator = @present_iterator
+          iterator.next
+        else
+          true
+        end
+
+        if is_present.is_a?(Iterator::Stop)
+          return stop
+        end
+
+        if !is_present
+          return nil
+        end
+
+        length = @length_iterator.next
+
+        if length.is_a?(Iterator::Stop)
+          return stop
+        end
+
+        String.new(@data_memory[@data_offset, length]).tap do
+          @data_offset += length
+          @row += 1
+        end
       end
     end
   end

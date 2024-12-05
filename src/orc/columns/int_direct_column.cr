@@ -2,12 +2,12 @@ module Orc
   class IntDirectColumn < Column
     property data : DataStream(IntegerRLEBuffer)
     property present : PresentStream
-    property size : Int32
+    property size : UInt64
 
     def initialize(@id : UInt32)
       super
 
-      @size = 0
+      @size = 0u64
       @data = DataStream.new(@id, IntegerRLEBuffer.new(IO::Memory.new, signed: true))
       @present = PresentStream.new(@id)
     end
@@ -25,6 +25,10 @@ module Orc
       end
 
       @size += 1
+    end
+
+    def each
+      ColumnIterator(Int64?).new(self)
     end
 
     def to_io(io)

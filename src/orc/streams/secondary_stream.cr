@@ -1,5 +1,6 @@
 module Orc
   class SecondaryStream(B) < Stream
+    getter buffer : B
     getter column : UInt32
 
     def initialize(@column : UInt32, @buffer : B = B.new(IO::Memory.new))

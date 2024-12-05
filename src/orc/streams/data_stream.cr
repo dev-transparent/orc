@@ -1,5 +1,6 @@
 module Orc
   class DataStream(B) < Stream
+    getter buffer : B
     getter column : UInt32
 
     def initialize(@column, @buffer : B = B.new(IO::Memory.new))

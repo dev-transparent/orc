@@ -3,12 +3,12 @@ module Orc
     property data : DataStream(BytesBuffer)
     property length : LengthStream
     property present : PresentStream
-    property size : Int32
+    property size : UInt64
 
     def initialize(@id : UInt32)
       super
 
-      @size = 0
+      @size = 0u64
       @data = DataStream(BytesBuffer).new(@id)
       @length = LengthStream.new(@id)
       @present = PresentStream.new(@id)
@@ -28,6 +28,10 @@ module Orc
       end
 
       @size += 1
+    end
+
+    def each
+      ColumnIterator(Bytes?).new(self)
     end
 
     def bytesize

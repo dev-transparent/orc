@@ -64,7 +64,7 @@ module Orc
 
           stripe.columns << BooleanDirectColumn.new(
             id: field.id,
-            size: 0, # TODO: Find the size of the column?
+            size: information.number_of_rows.not_nil!,
             data: data,
             present: present,
           )
@@ -84,7 +84,7 @@ module Orc
 
             stripe.columns << StringDirectColumn.new(
               id: field.id,
-              size: 0, # TODO: Find the size of the column?
+              size: information.number_of_rows.not_nil!,
               data: data,
               length: length,
               present: present,

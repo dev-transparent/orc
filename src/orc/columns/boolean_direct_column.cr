@@ -2,17 +2,17 @@ module Orc
   class BooleanDirectColumn < Column
     property data : DataStream(BooleanRLEBuffer)
     property present : PresentStream?
-    property size : Int32
+    property size : UInt64
 
     def initialize(@id : UInt32)
       super
 
-      @size = 0
+      @size = 0u64
       @data = DataStream(BooleanRLEBuffer).new(@id)
       @present = PresentStream.new(@id)
     end
 
-    def initialize(@id : UInt32, @size : Int32, @data : DataStream(BooleanRLEBuffer), @present : PresentStream? = nil)
+    def initialize(@id : UInt32, @size : UInt64, @data : DataStream(BooleanRLEBuffer), @present : PresentStream? = nil)
     end
 
     def encoding : Proto::ColumnEncoding
@@ -28,6 +28,10 @@ module Orc
       end
 
       @size += 1
+    end
+
+    def each
+      ColumnIterator(Bool?).new(self)
     end
 
     def to_io(io)

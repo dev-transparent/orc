@@ -35,6 +35,9 @@ describe Orc do
       reader = Orc::Reader.new(io)
       reader.each_stripe.each do |stripe|
         column = stripe.columns.first
+        column.each.each do |value|
+          puts value
+        end
       end
     end
   end

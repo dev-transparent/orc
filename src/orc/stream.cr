@@ -1,5 +1,6 @@
 module Orc
   abstract class Stream
+    abstract def buffer
     abstract def column
     abstract def bytesize
     abstract def flush
